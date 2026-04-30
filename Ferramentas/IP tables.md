@@ -72,5 +72,18 @@ iptables -I INPUT 1 -s 203.0.113.50 -j DROP
 
 # Hello Word, primeiros testes práticos
 
-Para consolidar os conhecimentos estudados até então, fiz as primeiras interações com os comandos para criar regras que liberam trafego SSH
+Para consolidar os conhecimentos estudados até então, fiz as primeiras interações com os comandos para criar regras que liberam trafego SSH (port 20) e bloqueio todo resto.
+
+Regra de liberação para porta 22:
+iptables -t FILTER -I INPUT 1 -s 192.168.114.1 -i ens34 --dport 22 -j ACCEPT
+
+Coloquei também uma regra que aceitaria trafego loopback para comunicação entre serviços/processos:
+
+iptables -I INPUT 1 -i lo -j ACCEPT
+
+Com essa configuração inicial, eu criei a barreira que permite a entrada apenas de trafego SSH (TCP/22). Sendo assim, testes usando outras portas seriam dropados pelo firewall.
+
+![[Pasted image 20260430095717.png]]
+
+
 
