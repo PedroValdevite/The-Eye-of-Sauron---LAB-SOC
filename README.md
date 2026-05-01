@@ -57,7 +57,7 @@ Após a consolidação da infraestrutura, o ambiente será utilizado para exerc�
 
 - Virtualização: VMware
     
-- Sistemas Operacionais: Windows Server 2022, Debian, Distribuições Linux diversas
+- Sistemas Operacionais: Windows Server 2022, Debian 13.2.
     
 - Segurança: Iptables, Wazuh, Suricata
     
