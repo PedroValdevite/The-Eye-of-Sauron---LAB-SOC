@@ -143,3 +143,115 @@ _Explicação do comando:_
 
 - **Logística (Cenário):** Um invasor na internet gera um pacote deformado propositalmente (com combinações de flags TCP erradas, como SYN e FIN ao mesmo tempo) para tentar confundir o seu servidor. Ou então, um pacote de erro ICMP chega, mas seu firewall percebe que ninguém na sua rede sequer conversou com o IP que gerou esse erro.
 - **Comportamento do Firewall:** O pacote não inicia uma conexão válida, não pertence a uma conexão estabelecida e não está relacionado a nada conhecido na tabela do `conntrack`. O firewall o classifica como **INVALID**. A atitude correta e rigorosa de um Mestre é simplesmente descartá-lo no esquecimento (DROP).
+  
+  
+  
+# NAT
+
+Há uma nota que explica com um pouco mais de profundidade sobre (Mas só um pouco) - [[NAT]]
+
+A Tradução de Endereço de Rede (_Network Address Translation_ - NAT) é a técnica de reescrever os endereços de origem ou destino dos pacotes enquanto eles transitam pelo firewall. Ela foi criada como uma solução para a escassez de endereços IPv4, permitindo que vários hosts de uma rede privada compartilhem um único IP público.
+
+No iptables, todo o NAT ocorre exclusivamente na tabela **nat**. Uma regra vital sobre a tabela `nat`: **apenas o primeiro pacote de uma conexão passa por ela**. Uma vez que o primeiro pacote é traduzido, o módulo de rastreamento de conexões (`conntrack`) memoriza a alteração e aplica a mesma tradução (e sua reversão) automaticamente a todos os pacotes subsequentes daquela mesma conexão.
+
+Existem dois fluxos principais de NAT:
+
+- **SNAT (Source NAT):** Reescreve o endereço IP de _origem_ do pacote. É usado na chain **POSTROUTING**, o último ponto antes do pacote sair da máquina, após as decisões de roteamento terem sido tomadas. O SNAT é ideal quando o seu firewall tem um endereço IP público estático.
+- **MASQUERADE:** Funciona exatamente como o SNAT, mas é projetado para conexões com IPs dinâmicos (como DHCP ou conexões discadas). Ele consome um pouco mais de processamento, pois lê o IP da interface a cada vez, e tem a vantagem de "esquecer" conexões antigas caso a interface de rede caia.
+- **DNAT (Destination NAT):** Reescreve o endereço IP de _destino_ do pacote. É usado na chain **PREROUTING**, o primeiro ponto de entrada do pacote, antes que qualquer decisão de roteamento seja tomada. É usado para _Port Forwarding_ (redirecionamento de portas), permitindo que um servidor numa rede privada seja acessado através da Internet.
+- **REDIRECT:** Uma variação do DNAT que redireciona o pacote para a própria máquina do firewall (o host local, 127.0.0.1). É muito utilizado para forçar tráfego a passar por um proxy transparente (como o Squid) instalado no próprio firewall.
+  
+### Sintaxe e Comandos
+
+Todos os comandos devem incluir `-t nat` para especificar a tabela.
+
+**Compartilhamento de Internet (SNAT / MASQUERADE na chain POSTROUTING):**
+
+- Com **IP Dinâmico** (ex: interface de saída é a `eth0` conectada à internet): `iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE`
+- Com **IP Estático** (ex: seu IP público é `203.0.113.1`): `iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 203.0.113.1`
+
+**Port Forwarding (DNAT na chain PREROUTING):**
+
+- Redirecionar o tráfego que chega na interface pública (`eth0`) na porta 80 para um servidor web interno no IP `10.0.0.5`: `iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 10.0.0.5:80`
+
+**Proxy Transparente / Redirecionamento Local (REDIRECT na chain PREROUTING):**
+
+- Redirecionar requisições web (porta 80) para um proxy local rodando na porta 8080 do próprio firewall: `iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080`
+  
+### Cenário Prático 
+
+ Seu firewall possui duas interfaces de rede:
+
+- `eth0`: Conectada à Internet, recebe um **IP Dinâmico** do seu provedor.
+- `eth1`: Conectada à sua LAN (Rede Local Interna).
+
+Você adicionou um servidor web na sua LAN, cujo IP interno é `192.168.1.100`.
+
+**O desafio proposto:** Fornecer dois comandos:
+
+1. O comando na tabela `nat` para **compartilhar a internet** com todos os computadores da sua LAN.
+2. O comando na tabela `nat` para **redirecionar** qualquer tráfego externo que bata na porta `8080` do seu firewall para a porta `80` do seu servidor web interno (`192.168.1.100`).
+
+_(Pense nas chains PREROUTING e POSTROUTING, e em qual target usar dependendo do cenário dinâmico)._
+  
+  Resposta:
+
+iptables -t nat -I POSTROUTING 1 -o eth0 -j masquerade
+
+iptables -t nat -I PREROUTING 1 -i eth0 -p tcp --dport 8080 -j DNAT --to-destination 192.168.1.100:80
+
+Duvida que eu tive:
+
+No caso, o trafego que entra pela interface eth1 com destino a internet (Ip de outra rede),  tem que ser configurado a interface eth1 como gateway, ou uma regra de forward em fliter?
+
+Resposta: 
+
+A resposta direta e definitiva para a sua pergunta é: **Você obrigatoriamente precisará de ambas as configurações.**
+
+Elas não são mutuamente exclusivas, pois atuam em dispositivos e camadas diferentes para que a comunicação ocorra com sucesso. Veja como elas se complementam:
+
+**1. A interface** **eth1** **como Gateway (Configuração nos Clientes da LAN)** Para que qualquer tráfego saia de um computador da sua rede local com destino à Internet (uma rede externa), as máquinas clientes precisam saber qual é a "porta de saída". O IP da interface `eth1` do seu firewall deve estar configurado como o **Gateway Padrão (Default Gateway)** nas configurações de rede de todos os computadores da LAN. Se isso não for feito, a máquina do cliente sequer enviará o pacote em direção ao firewall.
+
+**2. A regra de FORWARD na tabela** **filter** **(Configuração no Firewall)** Uma vez que o pacote atinge a interface `eth1` do seu firewall, o sistema operacional toma uma decisão de roteamento e percebe que ele precisa sair pela interface `eth0`,. Todo tráfego que atravessa o firewall (entra por uma interface e sai por outra) obrigatoriamente passa pela chain **FORWARD** da tabela **filter**,,. Se você for um administrador focado em segurança e a política padrão da sua chain `FORWARD` for `DROP`, você precisará adicionar uma regra explícita no Iptables autorizando essa travessia. Exemplo: `iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT`.
+
+**O Fluxo Completo da sua Arquitetura:**
+
+1. **No PC do Cliente:** Usa a `eth1` do firewall como **Gateway** para mandar o pacote.
+2. **No Kernel do Linux (Firewall):** Precisa estar com o encaminhamento de IP habilitado (`ip_forward=1`) para poder rotear o pacote de uma interface para outra,.
+3. **Na chain FORWARD (tabela** **filter****): Inspeciona e permite o trânsito do pacote entre a `eth1` e a `eth0`.
+4. **Na chain POSTROUTING (tabela** **nat**): Aplica o **MASQUERADE** para traduzir o IP privado para o IP público dinâmico.
+
+**Módulo 5: Persistência de Regras**
+
+Por padrão, todas as regras que você insere no firewall com o comando `iptables` ficam armazenadas apenas na memória RAM do kernel. Isso significa que, se o seu servidor for reiniciado, desligado abruptamente ou sofrer uma queda de energia, todo o seu trabalho será perdido.
+
+**Como era feito na prática:** O administrador criava um arquivo de texto executável (frequentemente nomeado como `rc.firewall` ou similar) contendo a chamada sequencial de todos os comandos do iptables, regra por regra. Esse script era então inserido no processo de inicialização do sistema operacional (como nos diretórios `/etc/rc.d/`). Assim, toda vez que o servidor era reiniciado, o sistema executava o script e reconstruía o cofre linha por linha.
+
+**O Grande Problema (A lentidão do Kernel):** A maior desvantagem de rodar um script shell com comandos sequenciais do iptables é a brutal **lentidão e o desperdício de processamento** em regras muito grandes. O que acontece em baixo nível é que cada vez que um comando `iptables` individual é executado no script, o utilitário precisa primeiro extrair todo o conjunto de regras atual do espaço do kernel (Netfilter), adicionar ou alterar a regra solicitada e, por fim, inserir todo o bloco de volta na memória do kernel. Fazer esse ciclo de "puxar, alterar e devolver" para cada uma das milhares de regras tornava a inicialização do firewall um processo incrivelmente pesado.
+
+Para garantir a sobrevivência do seu cofre, precisamos de um mecanismo para despejar (fazer o _dump_) essas regras da memória para um arquivo de texto e, posteriormente, injetá-las de volta durante a inicialização do sistema.
+
+Além da persistência, há um benefício arquitetônico gigantesco aqui: a **velocidade**. Executar um script shell que contenha milhares de comandos `iptables` sequenciais é extremamente lento, pois para cada comando, o sistema extrai o conjunto de regras do kernel, insere a nova regra e o envia de volta à memória. Ao usar ferramentas dedicadas de restauração, o conjunto completo de regras é enviado ao kernel em um único movimento, tornando o carregamento instantâneo, independentemente do tamanho do seu firewall
+
+Sintaxe e Comandos: Salvando e Restaurando
+
+As ferramentas oficiais para este trabalho são o `iptables-save` e o `iptables-restore`.
+
+**O Comando iptables-save:** Este comando lê as regras ativas no kernel e as imprime na tela em um formato especial. Para salvar em um arquivo, usamos o redirecionamento do Linux (`>`): `iptables-save > /etc/iptables/rules.v4`
+
+Se você quiser salvar não apenas as regras, mas também o estado atual dos **contadores de pacotes e bytes** de cada regra (ótimo para manter estatísticas após um reboot), você deve adicionar a flag `-c`. Exemplo: `iptables-save -c > /etc/iptables/rules.v4`.
+
+**O Comando iptables-restore:** Este comando não lê arquivos diretamente, mas recebe o conteúdo pela entrada padrão (_standard input_) para restaurar o firewall. Se você utilizou o `-c` no salvamento, pode passá-lo aqui também para restaurar os contadores. `iptables-restore < /etc/iptables/rules.v4`
+
+**A Automação no Debian/Ubuntu (iptables-persistent):** Para não ter que digitar o comando de restore toda vez que o servidor ligar, o ecossistema Debian/Ubuntu possui um pacote chamado `iptables-persistent`. Quando você instala este pacote (`apt install iptables-persistent`), ele passa a ler automaticamente o arquivo `/etc/iptables/rules.v4` durante o boot. Caso você altere alguma regra no seu firewall no dia a dia, você pode salvar o novo estado permanentemente executando: `netfilter-persistent save` (ou usando o próprio `iptables-save` direcionado ao arquivo `rules.v4`).
+
+
+A partir daqui, será dado inicio ao processo de configuração do firewall do ambiente. 
+
+Arquivo que irá descrever esse processo: [[Firewall]]
+
+
+# **Técnicas Avançadas e Hardening**
+
+Em breve...
+
