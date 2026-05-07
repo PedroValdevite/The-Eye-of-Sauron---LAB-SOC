@@ -1,3 +1,6 @@
+>O iptables é uma ferramenta de linha de comando baseada no kernel Linux que funciona como um firewall e filtro de pacotes de rede. Ele permite ao administrador definir regras para permitir, bloquear ou redirecionar tráfego (IPv4), agindo como um "segurança" que analisa pacotes de entrada, saída e encaminhamento.
+
+Arquitetura:
 - **Netfilter (O Motor no Kernel):** É a infraestrutura real que vive dentro do kernel do Linux. O Netfilter insere cinco "ganchos" (hooks) na pilha de rede do sistema operacional. Toda vez que um pacote de rede entra, sai ou atravessa a máquina, ele obrigatoriamente passa por esses ganchos. O Netfilter é quem efetivamente segura o pacote e decide o seu destino.
 
 - **Iptables (O Volante no Espaço do Usuário):** É a ferramenta de linha de comando (user-space utility) que você utiliza para conversar com o Netfilter. O kernel não entende comandos em texto puro; o `iptables` traduz as suas regras para que o Netfilter saiba o que fazer com os pacotes interceptados nos ganchos.
