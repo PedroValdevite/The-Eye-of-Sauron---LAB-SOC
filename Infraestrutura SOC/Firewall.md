@@ -95,4 +95,17 @@ Foi selecionado o método manual.
 Foi selecionado apenas servidor SSH (para gerenciamento da VM). Após será instalado os utilitários necessários manualmente.
 
 
+# Configuração inicial da VM
+
+> Após subir o sistema operacional, é necessário fazer configurações iniciais no ambiente, pois não há utilitários de interação ao kernel necessários para criar as regras de comunicação. 
+
+Conforme a topologia descrita nos começo dessa nota, há 3 interfaces nessa VM.
+
+Para validar se todas estão sendo detectadas pela VM, foi executado o comando nativo `ip`
+, mesmo em versão mínimas. Essa será a primeira interação com a configuração de rede do ambiente.
+
+![[Pasted image 20260513104212.png]]
+ Comando: `ip a`
+ > Para mais informações sobre esse comando, acesse: [[ip]]
+
 
