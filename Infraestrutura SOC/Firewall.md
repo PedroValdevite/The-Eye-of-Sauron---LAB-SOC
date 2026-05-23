@@ -100,12 +100,17 @@ Foi selecionado apenas servidor SSH (para gerenciamento da VM). Após será inst
 > Após subir o sistema operacional, é necessário fazer configurações iniciais no ambiente, pois não há utilitários de interação ao kernel necessários para criar as regras de comunicação. 
 
 Conforme a topologia descrita nos começo dessa nota, há 3 interfaces nessa VM.
-
 Para validar se todas estão sendo detectadas pela VM, foi executado o comando nativo `ip`
-, mesmo em versão mínimas. Essa será a primeira interação com a configuração de rede do ambiente.
-
+, mesmo em versão mínimas.
 ![[Pasted image 20260513104212.png]]
  Comando: `ip a`
  > Para mais informações sobre esse comando, acesse: [[ip]]
+
+
+Essa será a primeira interação com a configuração de rede do ambiente. O iptables não está instalado ainda, e mesmo que tivesse, ele não é capaz de interagir com as interfaces de rede. Na distribuição debian, e seus derivados, geralmente há 2 gerenciadores de configurações de rede, o `systemd-networkd` e o `NetworkManager`. No nosso ambiente, vamos usar o deamon [[systemd-networkd]].
+
+> Para mais informações do **NetworkManager**, acesse [[NetworkManager]].
+
+
 
 
