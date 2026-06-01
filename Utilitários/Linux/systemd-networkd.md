@@ -1,6 +1,6 @@
 O **`systemd-networkd`** é um daemon (serviço em segundo plano) nativo do ecossistema systemd, projetado para gerenciar e configurar interfaces de rede de forma leve, previsível e puramente orientada a arquivos de configuração.
 
-Ele se tornou o padrão ouro para ambientes minimalistas, como servidores sem interface gráfica, contêineres e sistemas embarcados, substituindo ferramentas legadas como o _ifupdown_ ou scripts pesados como o _NetworkManager_.
+Ele se tornou o padrão ouro para ambientes minimalistas, como servidores sem interface gráfica, contêineres e sistemas embarcados, substituindo ferramentas legadas como o _ifupdown_ ou scripts pesados como o _[[NetworkManager]]_.
 
 ## 1. O que é e qual sua proposta?
 
@@ -10,7 +10,7 @@ Ao contrário do NetworkManager (que é focado em desktops e reage dinamicamente
 
 O `systemd-networkd` não manipula o hardware diretamente. Ele atua como um tradutor de alto nível para as APIs do Kernel do Linux.
 
-- **Netlink (rtnetlink):** É o canal de comunicação. O `systemd-networkd` abre um socket Netlink com o kernel. Esse protocolo de comunicação bidirecional permite que o serviço envie comandos para o kernel (como "defina o IP X na interface Y") e receba eventos em tempo real (como "o cabo de rede da interface Z foi desconectado").
+- **Netlink (rtnetlink):** É o canal de comunicação. O `systemd-networkd` abre um [[socket]] Netlink com o kernel. Esse protocolo de comunicação bidirecional permite que o serviço envie comandos para o kernel (como "defina o IP X na interface Y") e receba eventos em tempo real (como "o cabo de rede da interface Z foi desconectado").
     
 - **Udev:** O `systemd-networkd` trabalha em perfeita sintonia com o `systemd-udevd` (o gerenciador de dispositivos). Assim que o kernel detecta uma nova placa de rede (física ou virtual), o `udev` a nomeia de forma previsível (ex: `enp3s0`), e o `networkd` imediatamente assume o controle para configurá-la de acordo com suas regras.
     
