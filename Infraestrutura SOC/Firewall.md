@@ -7,7 +7,7 @@
 
 A construção da topologia de rede traz mais eficiência e agilidade para o restante do processo de configuração.
 
-![[Drawing 2026-05-06 06.50.42.excalidraw]]
+![[imagens/Drawing 2026-05-06 06.50.42.excalidraw]]
 
 
 O ambiente, a principio, terá 2 redes isoladas entre si:
@@ -71,7 +71,7 @@ Sistema operacional: Debian 13
 
 1. A principio a configuração se iniciou com opções relacionadas a linguagem e identificação do hardware. Após, houve a criação do usuário root e usuário com menos privilégios.
 2. A partir do particionamento do disco será feita uma configuração mais robusta.
-![[Pasted image 20260507080527.png]]
+![[imagens/Pasted image 20260507080527.png]]
 Foi selecionado o método manual.
 3. Foi selecionado o disco (sda);
 > Será criada 2 partições, a primeira para o sistema e 1Gb para SWAP, por segurança.
@@ -90,7 +90,7 @@ Foi selecionado o método manual.
 15. Usar como: swap
 16. Finalizar
 > Agora vem a parte mais importante para instalação miníma
-![[Pasted image 20260507083040.png]]
+![[imagens/Pasted image 20260507083040.png]]
 
 Foi selecionado apenas servidor SSH (para gerenciamento da VM). Após será instalado os utilitários necessários manualmente.
 
@@ -102,7 +102,7 @@ Foi selecionado apenas servidor SSH (para gerenciamento da VM). Após será inst
 Conforme a topologia descrita nos começo dessa nota, há 3 interfaces nessa VM.
 Para validar se todas estão sendo detectadas pela VM, foi executado o comando nativo `ip`
 , mesmo em versão mínimas.
-![[Pasted image 20260513104212.png]]
+![[imagens/Pasted image 20260513104212.png]]
  Comando: `ip a`
  > Para mais informações sobre esse comando, acesse: [[ip]]
 

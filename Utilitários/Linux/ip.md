@@ -34,4 +34,4 @@ Os subcomandos aceitam abreviações: `ip a` funciona igual a `ip addr show`, e 
 Para tornar as configurações permanentes, use ferramentas como `nmcli`, `netplan` ou edite os arquivos de configuração da sua distribuição — as alterações feitas com `ip` são perdidas ao reiniciar.
 
 
-![[Pasted image 20260522105343.png]]
+![[imagens/Pasted image 20260522105343.png]]

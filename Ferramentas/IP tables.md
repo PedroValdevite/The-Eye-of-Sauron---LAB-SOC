@@ -86,7 +86,7 @@ iptables -I INPUT 1 -i lo -j ACCEPT
 
 Com essa configuração inicial, eu criei a barreira que permite a entrada apenas de trafego SSH (TCP/22). Sendo assim, testes usando outras portas seriam dropados pelo firewall.
 
-![[Pasted image 20260430095717.png]]
+![[imagens/Pasted image 20260430095717.png]]
 
 
 # A Rota de Ida e a Rota de Volta
