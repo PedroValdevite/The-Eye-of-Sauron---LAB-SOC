@@ -111,6 +111,28 @@ Essa será a primeira interação com a configuração de rede do ambiente. O ip
 
 > Para mais informações do **NetworkManager**, acesse [[NetworkManager]].
 
+Para validar as interfaces detectadas pelo deamon, vamos usar o seguinte comando:
 
+```bash
+netwrokctl list
+```
 
+retorno:
+![[Pasted image 20260612090009.png]]
+
+Agora vamos validar os arquivos de configuração que o networkd "lê" na inicialização, para configurar as interfaces físicas ou criar virtuais.
+
+Caminho padrão para o usuário, conforme explicado: /usr/lib/systemd/network/
+
+![[Pasted image 20260612091632.png]]
+
+Notei que não há um arquivo que gerencia a interface ens36, que está ativa. Sendo assim, foi executado o comando networkctl status ens36:
+
+![[Pasted image 20260612105843.png]]
+
+> Note o campo Network File com o valor de n/a. Sendo assim, não há um arquivo gerenciando essa interface. Ou seja, provavelmente há outro serviço gerenciando essa interface
+
+Portando, vamos criar arquivos de configuração para que o deamon gerencie as interfaces.
+
+Criação do arquivo 10-ens-main.network.
 

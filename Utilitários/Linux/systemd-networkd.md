@@ -21,12 +21,27 @@ A logística do `systemd-networkd` é baseada em **casamento de padrões (Match)
 
 Ele varre os diretórios de configuração em busca de arquivos de texto específicos. Os diretórios seguem a hierarquia padrão do systemd:
 
-1. `/etc/systemd/network/` (Configurações locais do administrador — **maior prioridade**)
+1. `/etc/systemd/network/`
+- **Quem comanda:** O sistema operacional / Mantenedores da distribuição (Ubuntu, Debian, Fedora, Arch).
     
-2. `/run/systemd/network/` (Configurações dinâmicas geradas em tempo de execução)
+- **Propósito:** Contém as configurações padrão que vêm de fábrica quando você instala o OS ou um pacote de rede específico. Por exemplo, uma regra genérica que diz "se encontrar uma interface ethernet que comece com `en`, ative o DHCP".
+    
+- **Regra de Ouro:** **Nunca mude nada aqui.** Se você alterar um arquivo neste diretório, na próxima atualização do sistema operacional suas alterações serão sumariamente apagadas.
+    
+1. `/run/systemd/network/`
+- **Quem comanda:** Processos do sistema, scripts de automação, daemons de terceiros ou ferramentas de nuvem (como o `cloud-init` em instâncias AWS, Azure ou Proxmox).
+    
+- **Propósito:** Configurações geradas dinamicamente enquanto o sistema está rodando. Se o seu servidor detecta uma mudança de contexto na inicialização (ex: trocou de rede na nuvem), um script pode gerar um arquivo `.network` aqui dentro rapidamente.
+    
+- **Regra de Ouro:** Este diretório reside na memória RAM (`tmpfs`). Isso significa que **tudo aqui dentro desaparece quando o servidor é reiniciado**.
     
 3. `/usr/lib/systemd/network/` (Configurações padrão distribuídas pelo sistema operacional)
     
+- **Quem comanda:** Você (Administrador do Sistema / Analista de Infraestrutura).
+    
+- **Propósito:** É aqui que reside a configuração persistente e personalizada da sua máquina ou do seu laboratório. Se você quer definir IPs estáticos, criar VLANs ou configurar uma VPN, seus arquivos devem ser criados aqui.
+    
+- **Regra de Ouro:** Este diretório sobrevive a reboots e atualizações de sistema. Ele é sagrado.
 
 O serviço lê os arquivos em ordem alfabética. Por isso, usa-se prefixos numéricos (ex: `10-vlan.network`, `20-eth0.network`). Quando uma interface de rede surge no sistema, o `networkd` percorre a lista de arquivos de cima para baixo. **O primeiro arquivo que der "Match" com as propriedades daquela interface será o único aplicado a ela.**
 
@@ -37,6 +52,58 @@ O `systemd-networkd` utiliza três tipos principais de arquivos no formato `.ini
 ### A. Arquivos `.network` (Configurações de Links/IPs)
 
 Configuram endereços IP, rotas, DNS e DHCP para interfaces existentes.
+
+### Estrutura e Seções Principais:
+
+### `[Match]`
+
+- `Name=`: Nome da interface (aceita curingas, ex: `enp*`).
+    
+- `Type=`: Tipo de link (ex: `ethernet`, `vlan`, `bridge`).
+    
+
+### `[Network]`
+
+Configurações gerais da interface.
+
+- `DHCP=`: Aceita `yes`, `no`, `ipv4` ou `ipv6`.
+    
+- `DNS=`: Servidores DNS separados por espaço.
+    
+- `Domains=`: Domínio de busca local (ex: `meulab.local`).
+    
+- `IPForwarding=`: **Crucial para Firewalls**. Ativa o roteamento de pacotes (`yes` ou `no`).
+    
+- `VLAN=`: Associa esta interface física a uma VLAN criada por um arquivo `.netdev`.
+    
+- `Bridge=`: Coloca esta interface como membra/escrava de uma Bridge.
+    
+
+### `[Address]`
+
+Configuração de IP Estático. Pode repetir essa seção várias vezes se a placa precisar de múltiplos IPs (Aliases).
+
+- `Address=`: IP e máscara em notação CIDR (ex: `192.168.1.10/24`).
+    
+
+### `[Route]`
+
+Configuração de rotas estáticas na tabela de roteamento do kernel.
+
+- `Gateway=`: O IP para onde enviar o tráfego.
+    
+- `Destination=`: A rede de destino da rota (se omitido, vira a rota padrão `0.0.0.0/0`).
+    
+- `Metric=`: A prioridade da rota (números menores têm maior prioridade).
+    
+
+### `[DHCPv4]` / `[DHCPv6]`
+
+Se você marcou `DHCP=yes`, essa seção customiza o comportamento do cliente DHCP.
+
+- `RouteMetric=`: Define a métrica da rota padrão entregue pelo roteador/provedor.
+    
+- `UseDNS=`: `yes` ou `no` (diz se você aceita os servidores DNS que o roteador te empurrar, ou se prefere ignorá-los e fixar os seus na seção `[Network]`).
 
 **Sintaxe Comum:**
 
@@ -66,6 +133,31 @@ Gateway=192.168.1.1
 
 Usados para **criar** interfaces de rede virtuais (como Bridges, VLANs, Bonds, e túneis VPN/WireGuard).
 
+### Estrutura e Seções Principais:
+
+### `[NetDev]`
+
+A seção global de criação.
+
+- `Name=`: O nome que a interface virtual terá no sistema (ex: `vlan20`, `br0`, `bond0`).
+    
+- `Kind=`: **A propriedade mais importante.** Define o tipo de tecnologia virtual. Os valores comuns são: `vlan`, `bridge`, `bond`, `tun`, `tap`, `wireguard`.
+    
+
+### Seções de Tipos Específicos (Ex: `[VLAN]`, `[Bridge]`, `[WireGuard]`)
+
+Dependendo do que você colocou em `Kind=`, uma seção correspondente abre novas opções:
+
+- **Se `Kind=vlan`:** Ativa a seção `[VLAN]`
+    
+    - `Id=`: O ID da tag 802.1Q (ex: `20`).
+        
+- **Se `Kind=bond`:** Ativa a seção `[Bond]`
+    
+    - `Mode=`: O tipo de agregação de link (ex: `balance-rr` para round-robin, ou `802.3ad` para LACP dinâmico).
+        
+- **Se `Kind=wireguard`:** Ativa a seção `[WireGuard]` e `[WireGuardPeer]` para fechar túneis VPN criptografados diretamente no kernel.
+
 **Sintaxe Comum:**
 
 Ini, TOML
@@ -79,6 +171,34 @@ Kind=bridge
 ### C. Arquivos `.link` (Políticas de Baixo Nível)
 
 Configuram parâmetros de hardware da placa de rede antes mesmo dela ser ativada (como mudar o endereço MAC ou alterar a política de nomenclatura).
+
+### Estrutura e Seções Principais:
+
+### `[Match]`
+
+Define em qual placa física esta regra vai se aplicar.
+
+- `MACAddress=`: Filtra pelo endereço físico de fábrica da placa (ex: `00:0c:29:c3:05:12`).
+    
+- `Path=`: Filtra pelo caminho do barramento PCI (ex: `pci-0000:02:04.0`). Útil se você trocar a placa queimada por uma nova: se colocar no mesmo slot, a regra ainda se aplica.
+    
+- `Driver=`: Filtra pelo driver do kernel (ex: `e1000`).
+    
+
+### `[Link]`
+
+Define as propriedades que serão injetadas nessa placa.
+
+- `NamePolicy=`: Define a estratégia de nomenclatura automática (ex: `kernel database onboard slot path`). Se você quiser desativar os nomes complexos e forçar um nome fixo, ignore essa linha e use a propriedade abaixo:
+    
+- `Name=`: Força um nome personalizado para a interface (ex: `wan0` ou `lan_interna`).
+    
+- `MACAddress=`: Permite "mascarar" ou clonar um MAC Address diferente para o hardware.
+    
+- `MTUBytes=`: Altera o tamanho máximo do pacote (ex: `9000` para _Jumbo Frames_ em redes de storage).
+    
+- `WakeOnLan=`: Ativa o despertar por rede (ex: `magic`).
+
 
 **Sintaxe Comum:**
 
