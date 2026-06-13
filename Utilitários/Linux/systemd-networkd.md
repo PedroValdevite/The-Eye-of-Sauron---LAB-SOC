@@ -1,4 +1,4 @@
-O **`systemd-networkd`** é um daemon (serviço em segundo plano) nativo do ecossistema systemd, projetado para gerenciar e configurar interfaces de rede de forma leve, previsível e puramente orientada a arquivos de configuração.
+:O **`systemd-networkd`** é um daemon (serviço em segundo plano) nativo do ecossistema systemd, projetado para gerenciar e configurar interfaces de rede de forma leve, previsível e puramente orientada a arquivos de configuração.
 
 Ele se tornou o padrão ouro para ambientes minimalistas, como servidores sem interface gráfica, contêineres e sistemas embarcados, substituindo ferramentas legadas como o _ifupdown_ ou scripts pesados como o _[[NetworkManager]]_.
 
