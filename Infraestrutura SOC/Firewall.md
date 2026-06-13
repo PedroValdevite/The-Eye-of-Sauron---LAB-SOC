@@ -31,7 +31,7 @@ Quando uma workstation ($192.168.0.33/27$) tenta acessar um site na internet:
     
 2. **Encaminhamento (Forward):** O IPTABLES recebe o pacote na `ens37` e o direciona para a interface de saída `ens34`.
     
-3. **NAT (Masquerade):** Aqui ira ocorrer o **SNAT** (Source NAT). O endereço de origem privado da workstation é substituído pelo endereço da `ens34` ($192.168.114.129$).
+3. **NAT (Masquerade):** Aqui ira ocorrer o **SNAT** (Source NAT). O endereço de origem privado da workstation é substituído pelo endereço da `ens34` ($192.168.114.4$).
     
 4. **Saída:** O pacote sai para o PC Host, que realiza um segundo NAT (como indicado no desenho) antes de chegar ao roteador e, finalmente, à WAN.
     
